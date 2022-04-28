@@ -8,6 +8,14 @@ Further import into a BOT on Chatopera, details in [doc](https://dwz.chatopera.c
 
 ## Install
 
+Publish on npmjs, [link](https://www.npmjs.com/package/@chatopera/docsbot).
+
+```
+@chatopera/docsbot
+```
+
+Now, access with `docsbot` in CLI.
+
 ## Usage
 
 ```

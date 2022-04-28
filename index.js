@@ -43,6 +43,16 @@ function mapRootCategory(rootCategory) {
 }
 
 /**
+ * 忽略的问题
+ * 一下内容不作为问题
+ */
+const FILTER_OUT_POSTS = new Set();
+FILTER_OUT_POSTS.add("下一步")
+FILTER_OUT_POSTS.add("感谢您")
+FILTER_OUT_POSTS.add("感谢你")
+FILTER_OUT_POSTS.add("可能遇到的问题")
+
+/**
  * Resolve URL
  * @param {*} from 
  * @param {*} to 
@@ -125,6 +135,7 @@ async function processMdFileAsFaq(targetPath, url, title, rootCategory) {
   let currentSection = title; // 当前所在的标题
   let isInCodeBlock = false;  // 当前是否在代码中
   let isInCodeBlockCount = 0;
+  let isSectionLine = false;
 
   for (let x of lines) {
     debug("%s: %s", title, x)
@@ -146,11 +157,24 @@ async function processMdFileAsFaq(targetPath, url, title, rootCategory) {
     if (isInCodeBlock == false) {
       // 识别是否是标题
       if (x.startsWith("#")) {
+        isSectionLine = true
         let z = x.replace(/#/g, "").trim()
         if (z) {
           currentSection = z
         }
+      } else {
+        // 不是标题
+        isSectionLine = false
       }
+    } else {
+      // 忽略代码中内容
+      continue;
+    }
+
+    // #TODO 如需全文都处理，去掉这个判断条件
+    if (!isSectionLine) {
+      // 减少数据，优化体验，只将标题处理为问答对
+      continue;
     }
 
     let sents = tokenizer.split(x)
@@ -162,7 +186,7 @@ async function processMdFileAsFaq(targetPath, url, title, rootCategory) {
 
       // check post
       let post = y.replace(/#/g, "").trim();
-      if(!post) continue;
+      if (!post) continue;
 
       // resolve category
       let categories = [];
@@ -192,13 +216,15 @@ async function processMdFileAsFaq(targetPath, url, title, rootCategory) {
         continue;
       }
 
+      let categoriesCopy = JSON.parse(JSON.stringify(categories));
+
       result.push({
         docId: docId,
         post: post,
         replies: [
           {
             "rtype": "plain",
-            "content": `${post.length > 20 ? post.slice(0, 20) : post} |${categories.length > 2 ? categories.reverse().slice(0, 2).join("|") : categories.reverse().join("|")}，访问详情 ${link}`
+            "content": `${post != currentSection ? (post.length > 20 ? (post.slice(0, 20) + "|") : (post + "|")) : ""}${categories.length > 2 ? categoriesCopy.reverse().slice(0, 2).join("|") : categoriesCopy.reverse().join("|")}，访问详情 ${link}`
           },
         ],
         categories: categories,
@@ -239,6 +265,7 @@ async function parse(options) {
   }
 
   const faqs = [];
+  const faqsPostDedup = new Set(); // 根据问题进行去重
 
   const parsePath = async (dirPath, urlPath, rootCategory) => {
     debug("parsePath %s, urlPath %s, rootCategory %s", dirPath, urlPath, rootCategory)
@@ -259,7 +286,17 @@ async function parse(options) {
         let title = resolveTitle(targetPath);
         let result = await processMdFileAsFaq(targetPath, url, title, rootCategory);
         for (let y of result) {
-          faqs.push(y) // { post: title, reply: url }
+          if (FILTER_OUT_POSTS.has(y.post))
+            continue
+
+          if (faqsPostDedup.has(y.post)) {
+            // 已经包含该问题了
+            console.log("parse dedup", rootCategory, "-", y.post)
+            continue;
+          } else {
+            faqs.push(y) // { post: title, reply: url }
+            faqsPostDedup.add(y.post)
+          }
         }
 
         // fast output for every file

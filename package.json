@@ -1,10 +1,14 @@
 {
   "name": "@chatopera/docsbot",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
     "docsbot": "node ./bin/cmd.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chatopera/docsbot"
   },
   "author": "",
   "license": "Apache2.0",

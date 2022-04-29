@@ -198,7 +198,7 @@ async function processMdFileAsFaq(targetPath, url, title, rootCategory) {
       if (currentSection != title)
         categories.push(currentSection)
 
-      let link = `${url}#${currentSection}`
+      let link = `${url}#${encodeURIComponent(currentSection)}`
       let docId = hash(y + title + link)
 
       try {
@@ -225,7 +225,7 @@ async function processMdFileAsFaq(targetPath, url, title, rootCategory) {
         replies: [
           {
             "rtype": "hyperlink",
-            "thumbnail": "https://bot.chatopera.com/file/626b17379a63490018d128d2",
+            "thumbnail": "/file/626b17379a63490018d128d2",
             "title": `${post != currentSection ? (post.length > 20 ? (post.slice(0, 20) + "|") : (post + "|")) : ""}${categories.length > 2 ? categoriesCopy.reverse().slice(0, 2).join("|") : categoriesCopy.reverse().join("|")}`,
             "content": "查看详情，快戳我~",
             "url": link
